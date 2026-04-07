@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Petrophysics Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f12;
+    --surface: #13161b;
+    --surface2: #1a1e25;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --accent: #d4a847;
+    --accent2: #7ec8a0;
+    --accent3: #6ba3d6;
+    --text: #e8e4d9;
+    --muted: #7a7870;
+    --muted2: #a09d96;
+    --warn: #d46b4a;
+    --good: #7ec8a0;
+    --mono: 'DM Mono', monospace;
+    --sans: 'Syne', sans-serif;
+    --radius: 6px;
+    --radius-lg: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* HEADER */
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    background: var(--surface);
+  }
+  .header-title {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .header-sub {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* LAYOUT */
+  .app {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    min-height: calc(100vh - 61px);
+  }
+
+  /* SIDEBAR NAV */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    background: var(--surface);
+  }
+  .nav-section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0 20px 8px;
+    margin-top: 20px;
+  }
+  .nav-section-label:first-child { margin-top: 0; }
+  .nav-item {
+    display: block;
+    padding: 9px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted2);
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .nav-item:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+  .nav-item.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: rgba(212,168,71,0.06);
+  }
+  .nav-item .nav-formula {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    display: block;
+    margin-top: 2px;
+    font-weight: 400;
+  }
+  .nav-item.active .nav-formula { color: rgba(212,168,71,0.6); }
+
+  /* MAIN CONTENT */
+  .main {
+    padding: 32px 40px;
+    overflow-y: auto;
+  }
+
+  /* PANEL */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .panel-header { margin-bottom: 28px; }
+  .panel-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .panel-desc {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted2);
+    line-height: 1.7;
+    max-width: 600px;
+  }
+
+  /* FORMULA DISPLAY */
+  .formula-card {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-lg);
+    padding: 16px 20px;
+    margin-bottom: 28px;
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+    line-height: 1.9;
+  }
+  .formula-card .f-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  /* TWO-COL LAYOUT */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  /* INPUTS SECTION */
+  .inputs-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+  }
+  .inputs-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+
+  .param-block { margin-bottom: 20px; }
+  .param-block:last-child { margin-bottom: 0; }
+
+  .param-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+  .param-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .param-symbol {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+  }
+  .param-desc {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    line-height: 1.5;
+  }
+
+  .param-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .param-controls input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 3px;
+    background: var(--surface2);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  .param-controls input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .param-controls input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  .param-controls input[type=number] {
+    width: 74px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 8px;
+    text-align: right;
+    outline: none;
+    -moz-appearance: textfield;
+  }
+  .param-controls input[type=number]::-webkit-outer-spin-button,
+  .param-controls input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .param-controls input[type=number]:focus { border-color: var(--accent); }
+  .param-unit {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    min-width: 28px;
+  }
+
+  /* RESULTS */
+  .results-col {}
+  .result-main {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .result-main-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .result-main-value {
+    font-size: 52px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    transition: color 0.3s;
+  }
+  .result-main-unit {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted2);
+    margin-top: 4px;
+  }
+
+  .result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .result-cell {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+  }
+  .result-cell-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 4px;
+  }
+  .result-cell-value {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  /* INTERPRETATION BOX */
+  .interp-box {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.75;
+    color: var(--muted2);
+  }
+  .interp-box .interp-tag {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  .interp-box.pay { border-color: rgba(126,200,160,0.3); background: rgba(126,200,160,0.04); }
+  .interp-box.pay .interp-tag { color: var(--good); }
+  .interp-box.transition { border-color: rgba(212,168,71,0.3); background: rgba(212,168,71,0.04); }
+  .interp-box.transition .interp-tag { color: var(--accent); }
+  .interp-box.wet { border-color: rgba(107,163,214,0.3); background: rgba(107,163,214,0.04); }
+  .interp-box.wet .interp-tag { color: var(--accent3); }
+  .interp-box.critical { border-color: rgba(212,107,74,0.3); background: rgba(212,107,74,0.04); }
+  .interp-box.critical .interp-tag { color: var(--warn); }
+
+  /* NOTES SECTION */
+  .notes-section {
+    margin-top: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+  }
+  .notes-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .notes-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 10px; }
+  .note-item { font-family: var(--mono); font-size: 11px; color: var(--muted2); line-height: 1.6; }
+  .note-item strong { color: var(--accent); font-weight: 500; display: block; margin-bottom: 2px; }
+
+  /* POROSITY PANEL specific */
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .method-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+  }
+  .method-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .method-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-bottom: 14px; }
+  .method-result {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--accent2);
+    margin-bottom: 2px;
+  }
+  .method-result-label { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+
+  /* GR PANEL */
+  .gr-bar-wrap { margin: 16px 0; }
+  .gr-bar-track {
+    height: 20px;
+    background: linear-gradient(to right, #2a5c2a, #8a8a2a, #7a2a2a);
+    border-radius: 4px;
+    position: relative;
+    margin-bottom: 6px;
+  }
+  .gr-bar-marker {
+    position: absolute;
+    top: -4px;
+    width: 3px;
+    height: 28px;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: left 0.15s;
+  }
+  .gr-bar-labels {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { display: flex; flex-wrap: wrap; padding: 12px 16px; border-right: none; border-bottom: 1px solid var(--border); }
+    .nav-section-label { display: none; }
+    .nav-item { border-left: none; border-bottom: 2px solid transparent; padding: 8px 12px; font-size: 12px; }
+    .nav-item.active { border-bottom-color: var(--accent); border-left-color: transparent; background: none; }
+    .nav-item .nav-formula { display: none; }
+    .main { padding: 20px; }
+    .two-col { grid-template-columns: 1fr; }
+    .three-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="header-title">Petrophysics Calculator</span>
+  <span class="header-sub">Interactive study tool — University of Calgary Geology</span>
+</div>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="nav-section-label">Saturation</div>
+    <div class="nav-item active" onclick="showPanel('archie')">
+      Archie's Equation
+      <span class="nav-formula">Sw = [(a·Rw)/(φᵐ·Rt)]^(1/n)</span>
+    </div>
+    <div class="nav-section-label">Porosity</div>
+    <div class="nav-item" onclick="showPanel('porosity')">
+      Porosity from Logs
+      <span class="nav-formula">φ = (ρma − ρb)/(ρma − ρfl)</span>
+    </div>
+    <div class="nav-section-label">Shale Volume</div>
+    <div class="nav-item" onclick="showPanel('vshale')">
+      GR Shale Volume
+      <span class="nav-formula">Vsh = (GR − GRmin)/(GRmax − GRmin)</span>
+    </div>
+    <div class="nav-section-label">Pay Estimation</div>
+    <div class="nav-item" onclick="showPanel('netpay')">
+      Net Pay Cutoffs
+      <span class="nav-formula">φ > φc, Sw < Swc, Vsh < Vshc</span>
+    </div>
+    <div class="nav-section-label">Formation Factor</div>
+    <div class="nav-item" onclick="showPanel('ff')">
+      Formation Factor
+      <span class="nav-formula">F = a / φᵐ</span>
+    </div>
+  </nav>
+
+  <!-- MAIN PANELS -->
+  <main class="main">
+
+    <!-- ═══ ARCHIE'S EQUATION ═══ -->
+    <div class="panel active" id="panel-archie">
+      <div class="panel-header">
+        <div class="panel-title">Archie's Equation</div>
+        <div class="panel-desc">Calculates water saturation (Sw) from resistivity logs in clean (clay-free) reservoir rocks. Drag sliders or type exact values.</div>
+      </div>
+
+      <div class="formula-card">
+        <span class="f-label">Formula</span>
+        Sw = [ (a × Rw) / (φ<sup style="font-size:10px">m</sup> × Rt) ]<sup style="font-size:10px">1/n</sup>
+        &nbsp;&nbsp;|&nbsp;&nbsp; F = a / φ<sup style="font-size:10px">m</sup>
+        &nbsp;&nbsp;|&nbsp;&nbsp; Sh = 1 − Sw
+      </div>
+
+      <div class="two-col">
+        <div class="inputs-card">
+          <div class="inputs-title">Input Parameters</div>
+
+          <div class="param-block">
+            <div class="param-header">
+              <span class="param-name">Porosity</span>
+              <span class="param-symbol">φ</span>
+            </div>
+            <div class="param-desc">Fraction of rock volume that is pore space. Derived from density, neutron, or sonic logs.</div>
+            <div class="param-controls">
+              <input type="range" id="a-phi-s" min="0.02" max="0.40" step="0.01" value="0.18" oninput="syncNum('a-phi','a-phi-s');calcArchie()">
+              <input type="number" id="a-phi" min="0.02" max="0.40" step="0.01" value="0.18" oninput="syncSlider('a-phi-s','a-phi');calcArchie()">
+              <span class="param-unit">frac</span>
+            </div>
+          </div>
+
+          <div class="param-block">
+            <div class="param-header">
+              <span class="param-name">Water resistivity</span>
+              <span class="param-symbol">Rw</span>
+            </div>
+            <div class="param-desc">Resistivity of formation water. Varies with salinity and temperature. Lower = saltier water.</div>
+            <div class="param-controls">
+              <input type="range" id="a-rw-s" min="0.01" max="2.0" step="0.01" value="0.10" oninput="syncNum('a-rw','a-rw-s');calcArchie()">
+              <input type="number" id="a-rw" min="0.01" max="2.0" step="0.01" value="0.10" oninput="syncSlider('a-rw-s','a-rw');calcArchie()">
+              <span class="param-unit">Ω·m</span>
+            </div>
+          </div>
+
+          <div class="param-block">
+            <div class="param-header">
+              <span class="param-name">True resistivity</span>
+              <span class="param-symbol">Rt</span>
+            </div>
+            <div class="param-desc">Deep resistivity log reading corrected for invasion. High Rt often indicates hydrocarbons.</div>
+            <div class="param-controls">
+              <input type="range" id="a-rt-s" min="0.5" max="500" step="0.5" value="40" oninput="syncNum('a-rt','a-rt-s');calcArchie()">
+              <input type="number" id="a-rt" min="0.5" max="500" step="0.5" value="40" oninput="syncSlider('a-rt-s','a-rt');calcArchie()">
+              <span class="param-unit">Ω·m</span>
+            </div>
+          </div>
+
+          <div class="param-block">
+            <div class="param-header">
+              <span class="param-name">Cementation exponent</span>
+              <span class="param-symbol">m</span>
+            </div>
+            <div class="param-desc">Relates porosity to formation factor. ~1.8 unconsolidated, ~2.0 consolidated sandstone, ~2.2 carbonates.</div>
+            <div class="param-controls">
+              <input type="range" id="a-m-s" min="1.4" max="2.5" step="0.01" value="2.0" oninput="syncNum('a-m','a-m-s');calcArchie()">
+              <input type="number" id="a-m" min="1.4" max="2.5" step="0.01" value="2.0" oninput="syncSlider('a-m-s','a-m');calcArchie()">
+              <span class="param-unit">—</span>
+            </div>
+          </div>
+
+          <div class="param-block">
+            <div class="param-header">
+              <span class="param-name">Saturation exponent</span>
+              <span class="param-symbol">n</span>
+            </div>
+            <div class="param-desc">Relates resistivity index to water saturation. Typically 2.0 but can vary with wettability.</div>
+            <div class="param-controls">
+              <input type="range" id="a-n-s" min="1.4" max="2.5" step="0.01" value="2.0" oninput="syncNum('a-n','a-n-s');calcArchie()">
+              <input type="number" id="a-n" min="1.4" max="2.5" step="0.01" value="2.0" oninput="syncSlider('a-n-s','a-n');calcArchie()">
+              <span class="param-unit">—</span>
+            </div>
+          </div>
+
+          <div class="param-block">
+            <div class="param-header">
+              <span class="param-name">Tortuosity factor</span>
+              <span class="param-symbol">a</span>
+            </div>
+            <div class="param-desc">Accounts for pore geometry complexity. Humble formula uses 0.62, often set to 1.0 for simplicity.</div>
+            <div class="param-controls">
+              <input type="range" id="a-a-s" min="0.5" max="1.5" step="0.01" value="1.0" oninput="syncNum('a-a','a-a-s');calcArchie()">
+              <input type="number" id="a-a" min="0.5" max="1.5" step="0.01" value="1.0" oninput="syncSlider('a-a-s','a-a');calcArchie()">
+              <span class="param-unit">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="results-col">
+          <div class="result-main">
+            <div class="result-main-label">Water Saturation (Sw)</div>
+            <div class="result-main-value" id="a-sw-val" style="color:var(--accent)">—</div>
+            <div class="result-main-unit">percent of pore space</div>
+          </div>
+
+          <div class="result-grid">
+            <div class="result-cell">
+              <div class="result-cell-label">Hydrocarbon Sat. (Sh)</div>
+              <div class="result-cell-value" id="a-sh-val">—</div>
+            </div>
+            <div class="result-cell">
+              <div class="result-cell-label">Formation Factor (F)</div>
+              <div class="result-cell-value" id="a-ff-val">—</div>
+            </div>
+            <div class="result-cell">
+              <div class="result-cell-label">Resistivity Index (RI)</div>
+              <div class="result-cell-value" id="a-ri-val">—</div>
+            </div>
+            <div class="result-cell">
+              <div class="result-cell-label">Rw from F × Rt</div>
+              <div class="result-cell-value" id="a-rwcheck-val">—</div>
+            </div>
+          </div>
+
+          <div class="interp-box" id="a-interp">
+            <div class="interp-tag" id="a-interp-tag">Interpretation</div>
+            <div id="a-interp-text">Adjust parameters to see interpretation.</div>
+          </div>
+
+          <div class="notes-section">
+            <div class="notes-title">Key Assumptions &amp; Limitations</div>
+            <div class="notes-grid">
+              <div class="note-item"><strong>Clean sand only</strong>Clay minerals conduct electricity independently — Archie's will overestimate Sw in shaly sands. Use Waxman-Smits or Dual-Water model instead.</div>
+              <div class="note-item"><strong>Rw calibration</strong>Must be representative of the formation water at reservoir temperature. Get from produced water samples or SP log analysis.</div>
+              <div class="note-item"><strong>m and n</strong>Ideally measured on core plugs in the lab. Defaulting to 2.0 introduces uncertainty — especially in carbonates.</div>
+              <div class="note-item"><strong>Invasion</strong>Rt must be the uninvaded resistivity. If your LLS ≈ LLD, invasion is minimal and Rt ≈ LLD.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ POROSITY FROM LOGS ═══ -->
+    <div class="panel" id="panel-porosity">
+      <div class="panel-header">
+        <div class="panel-title">Porosity from Logs</div>
+        <div class="panel-desc">Calculate porosity from density, neutron, and sonic logs. Compare methods and check for gas crossover effects.</div>
+      </div>
+
+      <div class="three-col">
+        <div class="method-card">
+          <div class="method-title">Density Porosity</div>
+          <div class="method-sub">φD = (ρma − ρb) / (ρma − ρfl)</div>
+          <div class="method-result" id="p-phiD">—</div>
+          <div class="method-result-label">fraction</div>
+        </div>
+        <div class="method-card">
+          <div class="method-title">Neutron Porosity</div>
+          <div class="method-sub">φN — read directly from log</div>
+          <div class="method-result" id="p-phiN-disp">—</div>
+          <div class="method-result-label">fraction (input below)</div>
+        </div>
+        <div class="method-card">
+          <div class="method-title">Sonic Porosity</div>
+          <div class="method-sub">φS = (Δt − Δtma) / (Δtfl − Δtma)</div>
+          <div class="method-result" id="p-phiS">—</div>
+          <div class="method-result-label">fraction</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="inputs-card">
+          <div class="inputs-title">Density Log Inputs</div>
+
+          <div class="param-block">
+            <div class="param-header"><span class="param-name">Bulk density</span><span class="param-symbol">ρb</span></div>
+            <div class="param-desc">Measured bulk density from RHOB log. Sandstone ~2.65, limestone ~2.71, dolomite ~2.87 g/cc.</div>
+            <div class="param-controls">
+              <input type="range" id="p-rhob-s" min="1.8" max="2.9" step="0.01" value="2.35" oninput="syncNum('p-rhob','p-rhob-s');calcPorosity()">
+              <input type="number" id="p-rhob" min="1.8" max="2.9" step="0.01" value="2.35" oninput="syncSlider('p-rhob-s','p-rhob');calcPorosity()">
+              <span class="param-unit">g/cc</span>
+            </div>
+          </div>
+
+          <div class="param-block">
+            <div class="param-header"><span class="param-name">Matrix density</span><span class="param-symbol">ρma</span></div>
+            <div class="param-desc">Grain density of rock matrix. Quartz sandstone: 2.65, limestone: 2.71, dolomite: 2.87 g/cc.</div>
+            <div class="param-controls">
+              <input type="range" id="p-rhoma-s" min="2.50" max="2.90" step="0.01" value="2.65" oninput="syncNum('p-rhoma','p-rhoma-s');calcPorosity()">
+              <input type="number" id="p-rhoma" min="2.50" max="2.90" step="0.01" value="2.65" oninput="syncSlider('p-rhoma-s','p-rhoma');calcPorosity()">
+              <span class="param-unit">g/cc</span>
+            </div>
+          </div>
+
+          <div class="param-block">
+            <div class="param-header"><span class="param-name">Fluid density</span><span class="param-symbol">ρfl</span></div>
+            <div class="param-desc">Density of pore fluid: saltwater ≈ 1.10, freshwater ≈ 1.00, oil ≈ 0.85, gas ≈ 0.2 g/cc.</div>
+            <div class="param-controls">
+              <input type="range" id="p-rhofl-s" min="0.1" max="1.2" step="0.01" value="1.0" oninput="syncNum('p-rhofl','p-rhofl-s');calcPorosity()">
+              <input type="number" id="p-rhofl" min="0.1" max="1.2" step="0.01" value="1.0" oninput="syncSlider('p-rhofl-s','p-rhofl');calcPorosity()">
+              <span class="param-unit">g/cc</span>
+            </div>
+          </div>
+
+          <div class="inputs-title" style="margin-top:20px">Neutron &amp; Sonic Inputs</div>
+
+          <div class="param-block">
+            <div class="param-header"><span class="param-name">Neutron porosity</span><span class="param-symbol">φN</span></div>
+            <div class="param-desc">Read directly from NPHI log (limestone units). Shale-corrected before use.</div>
+            <div class="param-controls">
+              <input type="range" id="p-phin-s" min="0.0" max="0.50" step="0.01" value="0.22" oninput="syncNum('p-phin','p-phin-s');calcPorosity()">
+              <input type="number" id="p-phin" min="0.0" max="0.50" step="0.01" value="0.22" oninput="syncSlider('p-phin-s','p-phin');calcPorosity()">
+              <span class="param-unit">frac</span>
+            </div>
+          </div>
+
+          <div class="param-block">
+            <div class="param-header"><span class="param-name">Measured transit time</span><span class="param-symbol">Δt</span></div>
+            <div class="param-desc">Sonic log reading. Clean wet sandstone ~100 μs/ft, tight zones lower.</div>
+            <div class="param-controls">
+              <input type="range" id="p-dt-s" min="50" max="200" step="1" value="90" oninput="syncNum('p-dt','p-dt-s');calcPorosity()">
+              <input type="number" id="p-dt" min="50" max="200" step="1" value="90" oninput="syncSlider('p-dt-s','p-dt');calcPorosity()">
+              <span class="param-unit">μs/ft</span>
+            </div>
+          </div>
+
+          <div class="param-block">
+            <div class="param-header"><span class="param-name">Matrix transit time</span><span class="param-symbol">Δtma</span></div>
+            <div class="param-desc">Sandstone: 55.6, limestone: 47.6, dolomite: 43.5 μs/ft.</div>
+            <div class="param-controls">
+              <input type="range" id="p-dtma-s" min="43" max="60" step="0.1" value="55.6" oninput="syncNum('p-dtma','p-dtma-s');calcPorosity()">
+              <input type="number" id="p-dtma" min="43" max="60" step="0.1" value="55.6" oninput="syncSlider('p-dtma-s','p-dtma');calcPorosity()">
+              <span class="param-unit">μs/ft</span>
+            </div>
+          </div>
+
+          <div class="param-block">
+            <div class="param-header"><span class="param-name">Fluid transit time</span><span class="param-symbol">Δtfl</span></div>
+            <div class="param-desc">Water: 189, oil: 230, gas: 850 μs/ft (gas severely overestimates sonic porosity).</div>
+            <div class="param-controls">
+              <input type="range" id="p-dtfl-s" min="100" max="900" step="1" value="189" oninput="syncNum('p-dtfl','p-dtfl-s');calcPorosity()">
+              <input type="number" id="p-dtfl" min="100" max="900" step="1" value="189" oninput="syncSlider('p-dtfl-s','p-dtfl');calcPorosity()">
+              <span class="param-unit">μs/ft</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="results-col">
+          <div class="result-main">
+            <div class="result-main-label">Density-Neutron Average φ</div>
+            <div class="result-main-value" id="p-phiavg" style="color:var(--accent2)">—</div>
+            <div class="result-main-unit">( φD + φN ) / 2</div>
+          </div>
+
+          <div class="result-grid">
+            <div class="result-cell">
+              <div class="result-cell-label">Density φD</div>
+              <div class="result-cell-value" id="p-phiD2">—</div>
+            </div>
+            <div class="result-cell">
+              <div class="result-cell-label">Neutron φN</div>
+              <div class="result-cell-value" id="p-phiN2">—</div>
+            </div>
+            <div class="result-cell">
+              <div class="result-cell-label">Sonic φS</div>
+              <div class="result-cell-value" id="p-phiS2">—</div>
+            </div>
+            <div class="result-cell">
+              <div class="result-cell-label">D-N Separation</div>
+              <div class="result-cell-value" id="p-sep">—</div>
+            </div>
+          </div>
+
+          <div class="interp-box" id="p-interp">
+            <div class="interp-tag" id="p-interp-tag">Crossplot Interpretation</div>
+            <div id="p-interp-text">Adjust parameters to see interpretation.</div>
+          </div>
+
+          <div class="notes-section">
+            <div class="notes-title">Crossplot Rules of Thumb</div>
+            <div class="notes-grid">
+              <div class="note-item"><strong>Gas effect</strong>φD reads too high (gas less dense), φN reads too low (gas traps fewer neutrons). Crossover (φN &lt; φD) is a gas indicator.</div>
+              <div class="note-item"><strong>Shale effect</strong>Both φD and φN read too high in shale. Similar separation, no crossover.</div>
+              <div class="note-item"><strong>Lithology</strong>On a neutron-density crossplot, points plot above the sandstone line for limestone/dolomite due to higher matrix density.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ VSHALE ═══ -->
+    <div class="panel" id="panel-vshale">
+      <div class="panel-header">
+        <div class="panel-title">GR Shale Volume (Vsh)</div>
+        <div class="panel-desc">Estimates volume fraction of shale from the gamma ray log using the linear and Larionov (1969) corrections.</div>
+      </div>
+
+      <div class="formula-card">
+        <span class="f-label">Formulas</span>
+        IGR = (GR − GRmin) / (GRmax − GRmin)
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        Vsh linear = IGR
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        Vsh Larionov (Tertiary) = 0.083 × (2<sup style="font-size:10px">3.7×IGR</sup> − 1)
+      </div>
+
+      <div class="two-col">
+        <div class="inputs-card">
+          <div class="inputs-title">Gamma Ray Inputs</div>
+
+          <div class="param-block">
+            <div class="param-header"><span class="param-name">Measured GR</span><span class="param-symbol">GR</span></div>
+            <div class="param-desc">Raw gamma ray reading at the depth of interest from the GR log.</div>
+            <div class="param-controls">
+              <input type="range" id="v-gr-s" min="0" max="250" step="1" value="65" oninput="syncNum('v-gr','v-gr-s');calcVshale()">
+              <input type="number" id="v-gr" min="0" max="250" step="1" value="65" oninput="syncSlider('v-gr-s','v-gr');calcVshale()">
+              <span class="param-unit">API</span>
+            </div>
+          </div>
+
+          <div class="param-block">
+            <div class="param-header"><span class="param-name">Clean sand baseline</span><span class="param-symbol">GRmin</span></div>
+            <div class="param-desc">GR value in the cleanest (lowest GR) sand in the interval. Read from a known clean zone.</div>
+            <div class="param-controls">
+              <input type="range" id="v-grmin-s" min="0" max="80" step="1" value="20" oninput="syncNum('v-grmin','v-grmin-s');calcVshale()">
+              <input type="number" id="v-grmin" min="0" max="80" step="1" value="20" oninput="syncSlider('v-grmin-s','v-grmin');calcVshale()">
+              <span class="param-unit">API</span>
+            </div>
+          </div>
+
+          <div class="param-block">
+            <div class="param-header"><span class="param-name">Shale baseline</span><span class="param-symbol">GRmax</span></div>
+            <div class="param-desc">GR value in a nearby pure shale. Read from the highest GR in a correlatable shale layer.</div>
+            <div class="param-controls">
+              <input type="range" id="v-grmax-s" min="80" max="300" step="1" value="150" oninput="syncNum('v-grmax','v-grmax-s');calcVshale()">
+              <input type="number" id="v-grmax" min="80" max="300" step="1" value="150" oninput="syncSlider('v-grmax-s','v-grmax');calcVshale()">
+              <span class="param-unit">API</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="results-col">
+          <div class="result-main">
+            <div class="result-main-label">GR Index (IGR)</div>
+            <div class="result-main-value" id="v-igr" style="color:var(--accent3)">—</div>
+            <div class="result-main-unit">normalized 0 → 1</div>
+          </div>
+
+          <div style="margin-bottom:16px">
+            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.08em">GR scale position</div>
+            <div class="gr-bar-track">
+              <div class="gr-bar-marker" id="v-marker" style="left:0%"></div>
+            </div>
+            <div class="gr-bar-labels">
+              <span>Clean sand</span>
+              <span>Silty</span>
+              <span>Shale</span>
+            </div>
+          </div>
+
+          <div class="result-grid">
+            <div class="result-cell">
+              <div class="result-cell-label">Vsh Linear</div>
+              <div class="result-cell-value" id="v-vsh-lin">—</div>
+            </div>
+            <div class="result-cell">
+              <div class="result-cell-label">Vsh Larionov (Tertiary)</div>
+              <div class="result-cell-value" id="v-vsh-lar">—</div>
+            </div>
+            <div class="result-cell">
+              <div class="result-cell-label">Vsh Clavier</div>
+              <div class="result-cell-value" id="v-vsh-clav">—</div>
+            </div>
+            <div class="result-cell">
+              <div class="result-cell-label">Recommended (min)</div>
+              <div class="result-cell-value" id="v-vsh-rec">—</div>
+            </div>
+          </div>
+
+          <div class="interp-box" id="v-interp">
+            <div class="interp-tag" id="v-interp-tag">Interpretation</div>
+            <div id="v-interp-text">Adjust GR values to see interpretation.</div>
+          </div>
+
+          <div class="notes-section">
+            <div class="notes-title">Which Vsh Formula to Use</div>
+            <div class="notes-grid">
+              <div class="note-item"><strong>Linear (conservative)</strong>Overestimates Vsh in older, well-consolidated rocks. Use as an upper bound or when in doubt.</div>
+              <div class="note-item"><strong>Larionov Tertiary</strong>Best for young, uncompacted formations. Gives lower Vsh than linear — more optimistic.</div>
+              <div class="note-item"><strong>Clavier</strong>0.33×(2^(2×IGR)−1). A middle-ground correction, widely used in the Western Canada Sedimentary Basin.</div>
+              <div class="note-item"><strong>Always use min()</strong>The smallest Vsh from corrected methods is usually the most geologically defensible for pay estimation.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ NET PAY ═══ -->
+    <div class="panel" id="panel-netpay">
+      <div class="panel-header">
+        <div class="panel-title">Net Pay Cutoffs</div>
+        <div class="panel-desc">Apply porosity, water saturation, and shale volume cutoffs to determine whether a zone qualifies as net pay.</div>
+      </div>
+
+      <div class="formula-card">
+        <span class="f-label">Net Pay Condition</span>
+        Zone is NET PAY if: φ ≥ φ_cutoff &nbsp;AND&nbsp; Sw ≤ Sw_cutoff &nbsp;AND&nbsp; Vsh ≤ Vsh_cutoff
+      </div>
+
+      <div class="two-col">
+        <div class="inputs-card">
+          <div class="inputs-title">Zone Properties</div>
+          <div class="param-block">
+            <div class="param-header"><span class="param-name">Porosity</span><span class="param-symbol">φ</span></div>
+            <div class="param-desc">Effective porosity of the zone (from density or neutron-density).</div>
+            <div class="param-controls">
+              <input type="range" id="np-phi-s" min="0.01" max="0.40" step="0.01" value="0.14" oninput="syncNum('np-phi','np-phi-s');calcNetPay()">
+              <input type="number" id="np-phi" min="0.01" max="0.40" step="0.01" value="0.14" oninput="syncSlider('np-phi-s','np-phi');calcNetPay()">
+              <span class="param-unit">frac</span>
+            </div>
+          </div>
+          <div class="param-block">
+            <div class="param-header"><span class="param-name">Water saturation</span><span class="param-symbol">Sw</span></div>
+            <div class="param-desc">From Archie's equation or equivalent. Fraction of pore space filled with water.</div>
+            <div class="param-controls">
+              <input type="range" id="np-sw-s" min="0.0" max="1.0" step="0.01" value="0.42" oninput="syncNum('np-sw','np-sw-s');calcNetPay()">
+              <input type="number" id="np-sw" min="0.0" max="1.0" step="0.01" value="0.42" oninput="syncSlider('np-sw-s','np-sw');calcNetPay()">
+              <span class="param-unit">frac</span>
+            </div>
+          </div>
+          <div class="param-block">
+            <div class="param-header"><span class="param-name">Shale volume</span><span class="param-symbol">Vsh</span></div>
+            <div class="param-desc">From GR index (Larionov or Clavier). High Vsh reduces effective porosity and permeability.</div>
+            <div class="param-controls">
+              <input type="range" id="np-vsh-s" min="0.0" max="1.0" step="0.01" value="0.18" oninput="syncNum('np-vsh','np-vsh-s');calcNetPay()">
+              <input type="number" id="np-vsh" min="0.0" max="1.0" step="0.01" value="0.18" oninput="syncSlider('np-vsh-s','np-vsh');calcNetPay()">
+              <span class="param-unit">frac</span>
+            </div>
+          </div>
+
+          <div class="inputs-title" style="margin-top:20px">Cutoff Values</div>
+          <div class="param-block">
+            <div class="param-header"><span class="param-name">Min porosity cutoff</span><span class="param-symbol">φc</span></div>
+            <div class="param-desc">Typically 0.08–0.12 for sandstone. Below this, permeability is too low to produce economically.</div>
+            <div class="param-controls">
+              <input type="range" id="np-phic-s" min="0.04" max="0.20" step="0.01" value="0.10" oninput="syncNum('np-phic','np-phic-s');calcNetPay()">
+              <input type="number" id="np-phic" min="0.04" max="0.20" step="0.01" value="0.10" oninput="syncSlider('np-phic-s','np-phic');calcNetPay()">
+              <span class="param-unit">frac</span>
+            </div>
+          </div>
+          <div class="param-block">
+            <div class="param-header"><span class="param-name">Max Sw cutoff</span><span class="param-symbol">Swc</span></div>
+            <div class="param-desc">Typically 0.50–0.70. Zones above this are predominantly water-bearing.</div>
+            <div class="param-controls">
+              <input type="range" id="np-swc-s" min="0.30" max="0.80" step="0.01" value="0.60" oninput="syncNum('np-swc','np-swc-s');calcNetPay()">
+              <input type="number" id="np-swc" min="0.30" max="0.80" step="0.01" value="0.60" oninput="syncSlider('np-swc-s','np-swc');calcNetPay()">
+              <span class="param-unit">frac</span>
+            </div>
+          </div>
+          <div class="param-block">
+            <div class="param-header"><span class="param-name">Max Vsh cutoff</span><span class="param-symbol">Vshc</span></div>
+            <div class="param-desc">Typically 0.30–0.50. Above this, clay content severely reduces permeability.</div>
+            <div class="param-controls">
+              <input type="range" id="np-vshc-s" min="0.10" max="0.60" step="0.01" value="0.35" oninput="syncNum('np-vshc','np-vshc-s');calcNetPay()">
+              <input type="number" id="np-vshc" min="0.10" max="0.60" step="0.01" value="0.35" oninput="syncSlider('np-vshc-s','np-vshc');calcNetPay()">
+              <span class="param-unit">frac</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="results-col">
+          <div class="result-main" id="np-result-main">
+            <div class="result-main-label">Net Pay Decision</div>
+            <div class="result-main-value" id="np-decision" style="font-size:36px">—</div>
+            <div class="result-main-unit" id="np-decision-sub">All three cutoffs must pass</div>
+          </div>
+
+          <div class="result-grid" id="np-checks">
+            <div class="result-cell">
+              <div class="result-cell-label">φ check</div>
+              <div class="result-cell-value" id="np-phi-check">—</div>
+            </div>
+            <div class="result-cell">
+              <div class="result-cell-label">Sw check</div>
+              <div class="result-cell-value" id="np-sw-check">—</div>
+            </div>
+            <div class="result-cell">
+              <div class="result-cell-label">Vsh check</div>
+              <div class="result-cell-value" id="np-vsh-check">—</div>
+            </div>
+            <div class="result-cell">
+              <div class="result-cell-label">Passes</div>
+              <div class="result-cell-value" id="np-passes">—</div>
+            </div>
+          </div>
+
+          <div class="interp-box" id="np-interp">
+            <div class="interp-tag" id="np-interp-tag">Interpretation</div>
+            <div id="np-interp-text">Adjust parameters to evaluate pay.</div>
+          </div>
+
+          <div class="notes-section">
+            <div class="notes-title">Important Context</div>
+            <div class="notes-grid">
+              <div class="note-item"><strong>Cutoffs are field-specific</strong>Always calibrated to production data and core analysis. Generic cutoffs are a starting point only.</div>
+              <div class="note-item"><strong>Net-to-gross (NTG)</strong>NTG = net pay thickness / gross interval. A key input for STOIIP/GIIP volumetric calculations.</div>
+              <div class="note-item"><strong>Permeability</strong>These log cutoffs are proxies. Core plug k measurements are the ground truth for flow capacity.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ FORMATION FACTOR ═══ -->
+    <div class="panel" id="panel-ff">
+      <div class="panel-header">
+        <div class="panel-title">Formation Factor</div>
+        <div class="panel-desc">The formation factor F links porosity to resistivity. Explore how pore geometry affects the electrical properties of a reservoir rock.</div>
+      </div>
+
+      <div class="formula-card">
+        <span class="f-label">Formulas</span>
+        F = a / φ<sup style="font-size:10px">m</sup>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        F = Ro / Rw
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        Humble: F = 0.62 / φ<sup style="font-size:10px">2.15</sup>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        RI = Rt / Ro = Sw<sup style="font-size:10px">−n</sup>
+      </div>
+
+      <div class="two-col">
+        <div class="inputs-card">
+          <div class="inputs-title">Parameters</div>
+
+          <div class="param-block">
+            <div class="param-header"><span class="param-name">Porosity</span><span class="param-symbol">φ</span></div>
+            <div class="param-desc">Total connected porosity of the rock sample or reservoir zone.</div>
+            <div class="param-controls">
+              <input type="range" id="f-phi-s" min="0.02" max="0.40" step="0.01" value="0.20" oninput="syncNum('f-phi','f-phi-s');calcFF()">
+              <input type="number" id="f-phi" min="0.02" max="0.40" step="0.01" value="0.20" oninput="syncSlider('f-phi-s','f-phi');calcFF()">
+              <span class="param-unit">frac</span>
+            </div>
+          </div>
+
+          <div class="param-block">
+            <div class="param-header"><span class="param-name">Cementation exponent</span><span class="param-symbol">m</span></div>
+            <div class="param-desc">Encodes pore geometry complexity. Higher m = more tortuous pore paths = higher F for the same φ.</div>
+            <div class="param-controls">
+              <input type="range" id="f-m-s" min="1.4" max="2.5" step="0.01" value="2.0" oninput="syncNum('f-m','f-m-s');calcFF()">
+              <input type="number" id="f-m" min="1.4" max="2.5" step="0.01" value="2.0" oninput="syncSlider('f-m-s','f-m');calcFF()">
+              <span class="param-unit">—</span>
+            </div>
+          </div>
+
+          <div class="param-block">
+            <div class="param-header"><span class="param-name">Tortuosity factor</span><span class="param-symbol">a</span></div>
+            <div class="param-desc">Pre-exponential constant. Humble: 0.62, Tixier: 0.81, simple Archie: 1.0.</div>
+            <div class="param-controls">
+              <input type="range" id="f-a-s" min="0.5" max="1.5" step="0.01" value="1.0" oninput="syncNum('f-a','f-a-s');calcFF()">
+              <input type="number" id="f-a" min="0.5" max="1.5" step="0.01" value="1.0" oninput="syncSlider('f-a-s','f-a');calcFF()">
+              <span class="param-unit">—</span>
+            </div>
+          </div>
+
+          <div class="param-block">
+            <div class="param-header"><span class="param-name">Water resistivity</span><span class="param-symbol">Rw</span></div>
+            <div class="param-desc">Used to compute Ro = F × Rw — the resistivity of the 100% water-saturated rock.</div>
+            <div class="param-controls">
+              <input type="range" id="f-rw-s" min="0.01" max="2.0" step="0.01" value="0.10" oninput="syncNum('f-rw','f-rw-s');calcFF()">
+              <input type="number" id="f-rw" min="0.01" max="2.0" step="0.01" value="0.10" oninput="syncSlider('f-rw-s','f-rw');calcFF()">
+              <span class="param-unit">Ω·m</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="results-col">
+          <div class="result-main">
+            <div class="result-main-label">Formation Factor (F)</div>
+            <div class="result-main-value" id="f-F-val" style="color:var(--accent3)">—</div>
+            <div class="result-main-unit">dimensionless</div>
+          </div>
+
+          <div class="result-grid">
+            <div class="result-cell">
+              <div class="result-cell-label">Ro = F × Rw</div>
+              <div class="result-cell-value" id="f-ro-val">—</div>
+            </div>
+            <div class="result-cell">
+              <div class="result-cell-label">F (Humble formula)</div>
+              <div class="result-cell-value" id="f-fhumble">—</div>
+            </div>
+            <div class="result-cell">
+              <div class="result-cell-label">Tortuosity factor τ</div>
+              <div class="result-cell-value" id="f-tau">—</div>
+            </div>
+            <div class="result-cell">
+              <div class="result-cell-label">Pore volume fraction</div>
+              <div class="result-cell-value" id="f-pv">—</div>
+            </div>
+          </div>
+
+          <div class="interp-box" id="f-interp">
+            <div class="interp-tag" id="f-interp-tag">Interpretation</div>
+            <div id="f-interp-text">Adjust parameters to see interpretation.</div>
+          </div>
+
+          <div class="notes-section">
+            <div class="notes-title">Physical Meaning</div>
+            <div class="notes-grid">
+              <div class="note-item"><strong>What F tells you</strong>F = Ro/Rw — how many times more resistive is the rock (100% brine-saturated) versus the brine alone. Reflects pore connectivity.</div>
+              <div class="note-item"><strong>F and permeability</strong>Low F (high φ, low m) generally correlates with better permeability, though F itself is not a permeability predictor.</div>
+              <div class="note-item"><strong>Lab measurement</strong>Measure Rw on a brine sample, flood core to 100% Sw, measure Ro. F = Ro/Rw. Plot log(F) vs log(φ) to get m and a from the slope and intercept.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  function showPanel(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('panel-' + id).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+
+  function syncNum(numId, sliderId) {
+    document.getElementById(numId).value = document.getElementById(sliderId).value;
+  }
+  function syncSlider(sliderId, numId) {
+    const el = document.getElementById(numId);
+    let v = parseFloat(el.value);
+    const mn = parseFloat(el.min), mx = parseFloat(el.max);
+    if (isNaN(v)) return;
+    v = Math.min(mx, Math.max(mn, v));
+    document.getElementById(sliderId).value = v;
+  }
+
+  function fmt(v, dec) { return isNaN(v) || !isFinite(v) ? '—' : v.toFixed(dec); }
+  function fmtPct(v) { return isNaN(v) || !isFinite(v) ? '—' : (v*100).toFixed(1) + '%'; }
+
+  /* ── ARCHIE ── */
+  function calcArchie() {
+    const phi = parseFloat(document.getElementById('a-phi').value);
+    const rw  = parseFloat(document.getElementById('a-rw').value);
+    const rt  = parseFloat(document.getElementById('a-rt').value);
+    const m   = parseFloat(document.getElementById('a-m').value);
+    const n   = parseFloat(document.getElementById('a-n').value);
+    const a   = parseFloat(document.getElementById('a-a').value);
+
+    const F  = a / Math.pow(phi, m);
+    const Ro = F * rw;
+    const Sw = Math.pow((F * rw) / rt, 1/n);
+    const SwC = Math.min(1, Math.max(0, Sw));
+    const Sh = 1 - SwC;
+    const RI = rt / Ro;
+
+    document.getElementById('a-sw-val').textContent = fmtPct(SwC);
+    document.getElementById('a-sh-val').textContent = fmtPct(Sh);
+    document.getElementById('a-ff-val').textContent = fmt(F, 1);
+    document.getElementById('a-ri-val').textContent = fmt(RI, 2);
+    document.getElementById('a-rwcheck-val').textContent = fmt(Ro, 3) + ' Ω·m';
+
+    const swEl = document.getElementById('a-sw-val');
+    if (SwC < 0.35) swEl.style.color = 'var(--good)';
+    else if (SwC < 0.6) swEl.style.color = 'var(--accent)';
+    else swEl.style.color = 'var(--warn)';
+
+    const box = document.getElementById('a-interp');
+    const tag = document.getElementById('a-interp-tag');
+    const txt = document.getElementById('a-interp-text');
+    box.className = 'interp-box';
+
+    if (SwC < 0.35) {
+      box.classList.add('pay'); tag.textContent = 'Strong pay indication';
+      txt.textContent = `Sw = ${fmtPct(SwC)} — well below typical cutoffs. Sh = ${fmtPct(Sh)} indicates a significant hydrocarbon column. The high Rt/Ro ratio (RI = ${fmt(RI,1)}) is consistent with hydrocarbons replacing conductive brine in pore space.`;
+    } else if (SwC < 0.55) {
+      box.classList.add('transition'); tag.textContent = 'Transitional zone';
+      txt.textContent = `Sw = ${fmtPct(SwC)} — transitional. Could represent a transition zone near the free water level, or uncertainty in Rw or m/n values. Verify Rw with produced water or SP log. Consider running sensitivity on m.`;
+    } else if (SwC < 0.75) {
+      box.classList.add('wet'); tag.textContent = 'Likely water-bearing';
+      txt.textContent = `Sw = ${fmtPct(SwC)} — predominantly water. Check whether Rw is calibrated correctly — overestimated Rw shifts Sw upward. Also confirm Rt is the uninvaded resistivity (LLD in low-invasion conditions).`;
+    } else {
+      box.classList.add('critical'); tag.textContent = 'Water-saturated';
+      txt.textContent = `Sw = ${fmtPct(SwC)} — essentially water-saturated. If Rt is high, review Rw — formation water may be fresher (higher Rw) than assumed. Also check for non-Archie effects: tight cementation, fractures, or heavy minerals.`;
+    }
+  }
+
+  /* ── POROSITY ── */
+  function calcPorosity() {
+    const rhob  = parseFloat(document.getElementById('p-rhob').value);
+    const rhoma = parseFloat(document.getElementById('p-rhoma').value);
+    const rhofl = parseFloat(document.getElementById('p-rhofl').value);
+    const phin  = parseFloat(document.getElementById('p-phin').value);
+    const dt    = parseFloat(document.getElementById('p-dt').value);
+    const dtma  = parseFloat(document.getElementById('p-dtma').value);
+    const dtfl  = parseFloat(document.getElementById('p-dtfl').value);
+
+    const phiD = (rhoma - rhob) / (rhoma - rhofl);
+    const phiS = (dt - dtma) / (dtfl - dtma);
+    const phiAvg = (phiD + phin) / 2;
+    const sep = phiN => phiN - phiD;
+
+    document.getElementById('p-phiD').textContent = fmtPct(phiD);
+    document.getElementById('p-phiN-disp').textContent = fmtPct(phin);
+    document.getElementById('p-phiS').textContent = fmtPct(phiS);
+    document.getElementById('p-phiD2').textContent = fmtPct(phiD);
+    document.getElementById('p-phiN2').textContent = fmtPct(phin);
+    document.getElementById('p-phiS2').textContent = fmtPct(phiS);
+    document.getElementById('p-phiavg').textContent = fmtPct(phiAvg);
+    const s = sep(phin);
+    document.getElementById('p-sep').textContent = fmt(s*100,1) + ' pu';
+
+    const box = document.getElementById('p-interp');
+    const tag = document.getElementById('p-interp-tag');
+    const txt = document.getElementById('p-interp-text');
+    box.className = 'interp-box';
+
+    if (phin < phiD) {
+      box.classList.add('pay'); tag.textContent = 'Possible gas crossover (φN < φD)';
+      txt.textContent = `Neutron porosity (${fmtPct(phin)}) is lower than density porosity (${fmtPct(phiD)}). This crossover pattern is a classic gas indicator — gas reduces neutron count and lowers apparent density. Verify with resistivity and confirm gas shows.`;
+    } else if (s > 0.06) {
+      box.classList.add('transition'); tag.textContent = 'Large D-N separation — possible shale or heavy mineral';
+      txt.textContent = `Neutron reads significantly higher than density (Δ = ${fmt(s*100,1)} pu). Shale inflates both but more so the neutron. Consider subtracting a shale correction. Heavy minerals (pyrite, siderite) can also cause anomalous separation.`;
+    } else {
+      box.classList.add('wet'); tag.textContent = 'Normal separation — likely brine-saturated';
+      txt.textContent = `Density and neutron porosities are close (Δ = ${fmt(s*100,1)} pu), consistent with a water-bearing or oil-bearing sandstone. Use the average φ = ${fmtPct(phiAvg)} for Sw calculation. Cross-check with resistivity.`;
+    }
+  }
+
+  /* ── VSHALE ── */
+  function calcVshale() {
+    const gr    = parseFloat(document.getElementById('v-gr').value);
+    const grmin = parseFloat(document.getElementById('v-grmin').value);
+    const grmax = parseFloat(document.getElementById('v-grmax').value);
+
+    const IGR = Math.min(1, Math.max(0, (gr - grmin) / (grmax - grmin)));
+    const vshLin  = IGR;
+    const vshLar  = 0.083 * (Math.pow(2, 3.7 * IGR) - 1);
+    const vshClav = 0.33  * (Math.pow(2, 2.0 * IGR) - 1);
+    const vshRec  = Math.min(vshLin, vshLar, vshClav);
+
+    document.getElementById('v-igr').textContent = fmt(IGR, 3);
+    document.getElementById('v-vsh-lin').textContent  = fmtPct(vshLin);
+    document.getElementById('v-vsh-lar').textContent  = fmtPct(Math.min(1,vshLar));
+    document.getElementById('v-vsh-clav').textContent = fmtPct(Math.min(1,vshClav));
+    document.getElementById('v-vsh-rec').textContent  = fmtPct(Math.min(1,vshRec));
+    document.getElementById('v-marker').style.left    = (IGR * 100).toFixed(1) + '%';
+
+    const box = document.getElementById('v-interp');
+    const tag = document.getElementById('v-interp-tag');
+    const txt = document.getElementById('v-interp-text');
+    box.className = 'interp-box';
+
+    if (IGR < 0.2) {
+      box.classList.add('pay'); tag.textContent = 'Clean sand';
+      txt.textContent = `IGR = ${fmt(IGR,3)} — GR is close to the clean baseline. Vsh is low; Archie's equation is applicable without shale correction. Good candidate for pay evaluation.`;
+    } else if (IGR < 0.5) {
+      box.classList.add('transition'); tag.textContent = 'Silty / slightly shaly sand';
+      txt.textContent = `IGR = ${fmt(IGR,3)} — moderate clay content. Archie's equation will overestimate Sw. Apply a shale correction (Simandoux or Waxman-Smits) or use Vsh-corrected effective porosity before computing Sw.`;
+    } else if (IGR < 0.75) {
+      box.classList.add('wet'); tag.textContent = 'Shaly sand';
+      txt.textContent = `IGR = ${fmt(IGR,3)} — significant shale volume. Porosity will be overestimated by neutron log. Net pay cutoff likely failed if Vshc < 0.50. Evaluate as non-pay unless cutoffs are relaxed.`;
+    } else {
+      box.classList.add('critical'); tag.textContent = 'Shale — not pay';
+      txt.textContent = `IGR = ${fmt(IGR,3)} — near-pure shale. GR is very close to the shale baseline. This zone will not qualify as net pay under any reasonable cutoff regime. Useful as a sealing lithology.`;
+    }
+  }
+
+  /* ── NET PAY ── */
+  function calcNetPay() {
+    const phi  = parseFloat(document.getElementById('np-phi').value);
+    const sw   = parseFloat(document.getElementById('np-sw').value);
+    const vsh  = parseFloat(document.getElementById('np-vsh').value);
+    const phic = parseFloat(document.getElementById('np-phic').value);
+    const swc  = parseFloat(document.getElementById('np-swc').value);
+    const vshc = parseFloat(document.getElementById('np-vshc').value);
+
+    const phiPass = phi >= phic;
+    const swPass  = sw  <= swc;
+    const vshPass = vsh <= vshc;
+    const passes  = [phiPass, swPass, vshPass].filter(Boolean).length;
+    const allPass = passes === 3;
+
+    document.getElementById('np-phi-check').textContent  = phiPass  ? `PASS (${fmtPct(phi)} ≥ ${fmtPct(phic)})`  : `FAIL (${fmtPct(phi)} < ${fmtPct(phic)})`;
+    document.getElementById('np-sw-check').textContent   = swPass   ? `PASS (${fmtPct(sw)} ≤ ${fmtPct(swc)})`    : `FAIL (${fmtPct(sw)} > ${fmtPct(swc)})`;
+    document.getElementById('np-vsh-check').textContent  = vshPass  ? `PASS (${fmtPct(vsh)} ≤ ${fmtPct(vshc)})`  : `FAIL (${fmtPct(vsh)} > ${fmtPct(vshc)})`;
+    document.getElementById('np-passes').textContent     = passes + ' / 3';
+
+    document.getElementById('np-phi-check').style.color  = phiPass  ? 'var(--good)' : 'var(--warn)';
+    document.getElementById('np-sw-check').style.color   = swPass   ? 'var(--good)' : 'var(--warn)';
+    document.getElementById('np-vsh-check').style.color  = vshPass  ? 'var(--good)' : 'var(--warn)';
+
+    const dec = document.getElementById('np-decision');
+    dec.textContent = allPass ? 'NET PAY' : 'NOT PAY';
+    dec.style.color = allPass ? 'var(--good)' : 'var(--warn)';
+
+    const box = document.getElementById('np-interp');
+    const tag = document.getElementById('np-interp-tag');
+    const txt = document.getElementById('np-interp-text');
+    box.className = 'interp-box';
+
+    if (allPass) {
+      box.classList.add('pay'); tag.textContent = 'Net pay — all cutoffs satisfied';
+      txt.textContent = `All three cutoffs pass. This interval qualifies as net pay. If working on a volumetric, this depth interval contributes to net pay thickness. Effective porosity × Sh gives pore volume occupied by hydrocarbons.`;
+    } else if (passes === 2) {
+      box.classList.add('transition'); tag.textContent = 'Borderline — one cutoff fails';
+      txt.textContent = `Two of three cutoffs pass. Review the failing criterion: if it is close to the cutoff, consider whether the cutoffs are appropriate for this field. Tight cutoffs may reject economic pay in unconventional or low-permeability reservoirs.`;
+    } else {
+      box.classList.add('critical'); tag.textContent = 'Non-pay — multiple cutoffs fail';
+      txt.textContent = `${3 - passes} cutoff${3-passes > 1 ? 's' : ''} fail. This zone is non-pay under current criteria. Check whether the cutoffs are calibrated to local field data — tighter reservoir systems (Montney, Duvernay) may require different thresholds.`;
+    }
+  }
+
+  /* ── FORMATION FACTOR ── */
+  function calcFF() {
+    const phi = parseFloat(document.getElementById('f-phi').value);
+    const m   = parseFloat(document.getElementById('f-m').value);
+    const a   = parseFloat(document.getElementById('f-a').value);
+    const rw  = parseFloat(document.getElementById('f-rw').value);
+
+    const F       = a / Math.pow(phi, m);
+    const Ro      = F * rw;
+    const Fhumble = 0.62 / Math.pow(phi, 2.15);
+    const tau     = Math.sqrt(F * phi);
+
+    document.getElementById('f-F-val').textContent   = fmt(F, 1);
+    document.getElementById('f-ro-val').textContent  = fmt(Ro, 3) + ' Ω·m';
+    document.getElementById('f-fhumble').textContent = fmt(Fhumble, 1);
+    document.getElementById('f-tau').textContent     = fmt(tau, 2);
+    document.getElementById('f-pv').textContent      = fmtPct(phi);
+
+    const box = document.getElementById('f-interp');
+    const tag = document.getElementById('f-interp-tag');
+    const txt = document.getElementById('f-interp-text');
+    box.className = 'interp-box';
+
+    if (F < 15) {
+      box.classList.add('pay'); tag.textContent = 'Low F — high porosity, well-connected pores';
+      txt.textContent = `F = ${fmt(F,1)} is low, consistent with high porosity and relatively simple pore geometry. Ro = ${fmt(Ro,3)} Ω·m — the brine-saturated baseline. Any Rt significantly above Ro in the well suggests hydrocarbons.`;
+    } else if (F < 40) {
+      box.classList.add('transition'); tag.textContent = 'Moderate F — typical sandstone';
+      txt.textContent = `F = ${fmt(F,1)} is typical for a consolidated sandstone with moderate porosity. Ro = ${fmt(Ro,3)} Ω·m. Compare to measured Rt on the log: if Rt >> Ro, hydrocarbons are likely. If Rt ≈ Ro, the zone is water-wet.`;
+    } else {
+      box.classList.add('wet'); tag.textContent = 'High F — tight rock or complex pore geometry';
+      txt.textContent = `F = ${fmt(F,1)} is high, indicating low porosity and/or tortuous pore paths (high m). Ro = ${fmt(Ro,3)} Ω·m. Tight reservoirs (Montney, Duvernay) often show high F — Rt needs to be very high to indicate hydrocarbon pay.`;
+    }
+  }
+
+  calcArchie();
+  calcPorosity();
+  calcVshale();
+  calcNetPay();
+  calcFF();
+</script>
+
+</body>
+</html>
